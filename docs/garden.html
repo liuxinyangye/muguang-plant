@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>沐光 · 花园</title>
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidenav">
+    <div class="logo">🌿 沐光</div>
+    <a href="index.html">☀️ 今日</a>
+    <a class="active" href="garden.html">🪴 花园</a>
+    <a href="record.html">📊 记录</a>
+    <a href="settings.html">⚙️ 我的</a>
+  </nav>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <h1>花园</h1>
+        <div class="sub" id="countLabel"></div>
+      </div>
+      <button class="btn-add" id="btnAdd">＋ 添加</button>
+    </div>
+
+    <div class="plant-list" id="plantList"></div>
+
+    <div class="empty" id="emptyView">
+      <div class="icon">🪴</div>
+      <p>花园里还没有植物</p>
+      <button class="btn-primary" id="btnAddEmpty">添加第一盆植物</button>
+    </div>
+  </main>
+
+  <aside class="overview">
+    <h3>花园概况</h3>
+    <div class="stat"><span>植物总数</span><b id="ovTotal">0 盆</b></div>
+    <div class="stat"><span>养护中</span><b id="ovActive">0 盆</b></div>
+    <div class="stat"><span>已归档</span><b id="ovArchived">0 盆</b></div>
+    <div class="stat"><span>养护计划</span><b id="ovPlans">0 条</b></div>
+    <div class="stat"><span>累计打卡</span><b id="ovCheckins">0 次</b></div>
+  </aside>
+</div>
+
+<nav class="tabbar">
+  <a href="index.html"><span class="ico">☀️</span>今日</a>
+  <a class="active" href="garden.html"><span class="ico">🪴</span>花园</a>
+  <a href="record.html"><span class="ico">📊</span>记录</a>
+</nav>
+
+<!-- 植物编辑弹出层（新增 / 编辑共用） -->
+<div class="mask" id="mask">
+  <div class="sheet">
+    <div class="title-row">
+      <h2 id="sheetTitle">添加植物</h2>
+      <button class="close" id="btnCloseSheet">✕</button>
+    </div>
+
+    <div class="field" id="fNickname">
+      <label>昵称（必填）</label>
+      <input type="text" id="nickname" placeholder="例如：绿萝 bb" maxlength="12">
+      <div class="err">请填写植物昵称</div>
+    </div>
+    <div class="field">
+      <label>品种</label>
+      <input type="text" id="species" placeholder="例如：绿萝" maxlength="12">
+    </div>
+    <div class="field">
+      <label>位置</label>
+      <input type="text" id="place" placeholder="例如：客厅电视柜" maxlength="12">
+    </div>
+
+    <div class="plan-block">
+      <h3>养护计划</h3>
+      <p class="plan-tip">点类型名可选常用类型，也可以自己输入，如“擦叶子”“转盆”；每盆最多 6 条</p>
+      <div id="planRows"></div>
+      <button class="btn-ghost" id="btnAddPlan">＋ 添加养护项</button>
+    </div>
+
+    <button class="btn-save" id="btnSave">保存</button>
+  </div>
+</div>
+
+<!-- 养护类型选择器 -->
+<div class="picker-mask" id="pickerMask">
+  <div class="picker">
+    <h3>选择养护类型</h3>
+    <div class="preset-row" id="presetRow"></div>
+    <p class="picker-label">自定义类型</p>
+    <div class="custom-row">
+      <input id="customType" placeholder="输入名称，如：擦叶子" maxlength="8">
+      <button id="btnCustomOk">确定</button>
+    </div>
+    <button class="cancel" id="btnPickerCancel">取消</button>
+  </div>
+</div>
+
+<div class="bp">断点：<span class="sm">sm · 手机 &lt;600</span><span class="md">md · 平板 600–840</span><span class="lg">lg · 2in1 &gt;840</span></div>
+
+<script src="assets/app.js"></script>
+<script>
+  (function () {
+    var editingId = 0;   // 0 = 新增
+    var pickerChip = null;
+
+    /* ---------- 列表渲染 ---------- */
+    function render() {
+      var plants = MG.state().plants;
+      var list = document.getElementById('plantList');
+      var empty = plants.length === 0;
+      list.style.display = empty ? 'none' : 'flex';
+      document.getElementById('emptyView').style.display = empty ? 'block' : 'none';
+
+      list.innerHTML = plants.map(function (p) {
+        var plans = MG.plansOf(p.id);
+        var archived = p.status !== MG.PS.ACTIVE;
+        var html = '<div class="plant' + (archived ? ' archived' : '') + '" data-id="' + p.id + '">';
+        html += '<div class="head">' +
+                '<div class="avatar">' + MG.emojiFor(p) + '</div>' +
+                '<div class="info">' +
+                  '<div class="name">' + MG.esc(p.name) + '</div>' +
+                  '<div class="species">' + MG.esc(p.species || '未填写品种') + '</div>' +
+                  '<span class="loc">📍 ' + MG.esc(p.place || '未填写位置') + '</span>' +
+                '</div>' +
+                '<div class="ops">' +
+                  '<button data-act="edit">编辑</button>' +
+                  (archived
+                    ? '<button data-act="restore">恢复</button><button class="danger" data-act="delete">删除</button>'
+                    : '<button data-act="archive">归档</button>') +
+                '</div>' +
+                '</div>';
+        if (plans.length > 0) {
+          html += '<div class="plans">' + plans.map(function (pl) {
+            return '<div class="plan"><span>' + MG.esc(pl.type) + '</span><b>每 ' + pl.intervalDays + ' 天 · ' + MG.esc(pl.remindTime) + '</b></div>';
+          }).join('') + '</div>';
+        }
+        html += '</div>';
+        return html;
+      }).join('');
+
+      var active = plants.filter(function (p) { return p.status === MG.PS.ACTIVE; }).length;
+      document.getElementById('countLabel').textContent = active + ' 盆养护中';
+      var ov = MG.overview();
+      document.getElementById('ovTotal').textContent = ov.plantTotal + ov.archived + ' 盆';
+      document.getElementById('ovActive').textContent = ov.plantTotal + ' 盆';
+      document.getElementById('ovArchived').textContent = ov.archived + ' 盆';
+      document.getElementById('ovPlans').textContent = ov.planTotal + ' 条';
+      document.getElementById('ovCheckins').textContent = ov.checkins + ' 次';
+    }
+
+    /* ---------- 编辑弹层 ---------- */
+    function planRowHtml(type, interval, time) {
+      return '<div class="plan-row">' +
+        '<button class="type-chip" data-act="picktype">' + MG.esc(type) + ' ▾</button>' +
+        '<span style="color:var(--text2);font-size:14px">每</span>' +
+        '<input type="number" class="p-interval" value="' + interval + '" min="1" max="365" style="width:56px" title="周期天数">' +
+        '<span style="color:var(--text2);font-size:14px">天</span>' +
+        '<input type="time" class="p-time" value="' + MG.esc(time) + '" title="提醒时刻">' +
+        '<button class="del" data-act="delrow">删除</button>' +
+        '</div>';
+    }
+    function openSheet(id) {
+      editingId = id || 0;
+      document.getElementById('sheetTitle').textContent = editingId ? '编辑植物' : '添加植物';
+      var p = editingId ? MG.plantById(editingId) : null;
+      document.getElementById('nickname').value = p ? p.name : '';
+      document.getElementById('species').value = p ? (p.species || '') : '';
+      document.getElementById('place').value = p ? (p.place || '') : '';
+      document.getElementById('fNickname').classList.remove('invalid');
+      var rows = document.getElementById('planRows');
+      if (p) {
+        var plans = MG.plansOf(p.id);
+        rows.innerHTML = plans.length > 0
+          ? plans.map(function (pl) { return planRowHtml(pl.type, pl.intervalDays, pl.remindTime); }).join('')
+          : planRowHtml('浇水', 2, '09:00');
+      } else {
+        rows.innerHTML = planRowHtml('浇水', 2, '09:00');
+      }
+      document.getElementById('mask').classList.add('open');
+    }
+    function closeSheet() { document.getElementById('mask').classList.remove('open'); }
+
+    function collectPlans() {
+      var rows = Array.prototype.slice.call(document.querySelectorAll('#planRows .plan-row'));
+      return rows.map(function (row) {
+        return {
+          type: row.querySelector('.type-chip').textContent.replace(' ▾', '').trim(),
+          intervalDays: Math.max(1, parseInt(row.querySelector('.p-interval').value, 10) || 1),
+          remindTime: row.querySelector('.p-time').value || '09:00'
+        };
+      }).filter(function (pl) { return pl.type !== ''; });
+    }
+
+    function saveSheet() {
+      var name = document.getElementById('nickname').value.trim();
+      var f = document.getElementById('fNickname');
+      if (name === '') { f.classList.add('invalid'); return; }
+      var plans = collectPlans();
+      if (plans.length === 0) { MG.toast('至少保留一条养护计划'); return; }
+      if (plans.length > MG.MAX_PLANS) { MG.toast('每盆最多 ' + MG.MAX_PLANS + ' 条养护计划'); return; }
+      var form = {
+        id: editingId, name: name,
+        species: document.getElementById('species').value.trim(),
+        place: document.getElementById('place').value.trim(),
+        plans: plans
+      };
+      if (editingId) { MG.updatePlant(form); MG.toast('已保存'); }
+      else { MG.addPlant(form); MG.toast('已添加 ' + name); }
+      closeSheet();
+      render();
+    }
+
+    /* ---------- 事件 ---------- */
+    document.getElementById('btnAdd').addEventListener('click', function () { openSheet(0); });
+    document.getElementById('btnAddEmpty').addEventListener('click', function () { openSheet(0); });
+    document.getElementById('btnCloseSheet').addEventListener('click', closeSheet);
+    document.getElementById('mask').addEventListener('click', function (e) { if (e.target === this) { closeSheet(); } });
+    document.getElementById('btnSave').addEventListener('click', saveSheet);
+    document.getElementById('nickname').addEventListener('input', function () {
+      document.getElementById('fNickname').classList.remove('invalid');
+    });
+
+    document.getElementById('btnAddPlan').addEventListener('click', function () {
+      var rows = document.querySelectorAll('#planRows .plan-row').length;
+      if (rows >= MG.MAX_PLANS) { MG.toast('每盆最多 ' + MG.MAX_PLANS + ' 条养护计划'); return; }
+      document.getElementById('planRows').insertAdjacentHTML('beforeend', planRowHtml('施肥', 30, '09:00'));
+    });
+
+    document.getElementById('planRows').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) { return; }
+      var act = btn.getAttribute('data-act');
+      if (act === 'picktype') {
+        pickerChip = btn;
+        document.getElementById('customType').value = '';
+        document.getElementById('pickerMask').classList.add('open');
+      } else if (act === 'delrow') {
+        var rows = document.querySelectorAll('#planRows .plan-row');
+        if (rows.length <= 1) { MG.toast('至少保留一条养护计划'); return; }
+        btn.closest('.plan-row').remove();
+      }
+    });
+
+    // 列表操作：编辑 / 归档 / 恢复 / 删除
+    document.getElementById('plantList').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) { return; }
+      var id = +btn.closest('.plant').getAttribute('data-id');
+      var act = btn.getAttribute('data-act');
+      if (act === 'edit') { openSheet(id); }
+      else if (act === 'archive') { MG.setArchived(id, true); render(); MG.toast('已归档'); }
+      else if (act === 'restore') { MG.setArchived(id, false); render(); MG.toast('已恢复养护'); }
+      else if (act === 'delete') {
+        var p = MG.plantById(id);
+        if (window.confirm('确定删除「' + (p ? p.name : '') + '」？将同时删除它的养护计划与记录，无法恢复。')) {
+          MG.deletePlant(id); render(); MG.toast('已删除');
+        }
+      }
+    });
+
+    /* ---------- 类型选择器 ---------- */
+    document.getElementById('presetRow').innerHTML =
+      MG.PRESETS.map(function (t) { return '<button class="preset" data-type="' + MG.esc(t) + '">' + MG.esc(t) + '</button>'; }).join('');
+    document.getElementById('presetRow').addEventListener('click', function (e) {
+      var btn = e.target.closest('.preset');
+      if (!btn || !pickerChip) { return; }
+      pickerChip.textContent = btn.getAttribute('data-type') + ' ▾';
+      document.getElementById('pickerMask').classList.remove('open');
+    });
+    document.getElementById('btnCustomOk').addEventListener('click', function () {
+      var name = document.getElementById('customType').value.trim();
+      if (name === '') { MG.toast('请输入养护类型名称'); return; }
+      if (name.length > 8) { MG.toast('类型名称不要超过 8 个字'); return; }
+      if (pickerChip) { pickerChip.textContent = name + ' ▾'; }
+      document.getElementById('pickerMask').classList.remove('open');
+    });
+    document.getElementById('btnPickerCancel').addEventListener('click', function () {
+      document.getElementById('pickerMask').classList.remove('open');
+    });
+    document.getElementById('pickerMask').addEventListener('click', function (e) {
+      if (e.target === this) { this.classList.remove('open'); }
+    });
+
+    render();
+  })();
+</script>
+</body>
+</html>

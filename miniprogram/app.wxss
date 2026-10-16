@@ -1,0 +1,62 @@
+/* 沐光小程序全局样式：设计令牌与 web 版 / 鸿蒙端一致（主色 #3A7D6E） */
+page {
+  --primary: #3A7D6E;
+  --primary-soft: #EAF2EF;
+  --done: #7BAE7F;
+  --pending: #A8B5B0;
+  --warn: #E0A458;
+  --danger: #C25B5B;
+  --bg: #F7F8F7;
+  --card: #FFFFFF;
+  --text: #2B3A35;
+  --text2: #8A9994;
+  --line: #E5EAE8;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 28rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+/* 通用组件 */
+.card {
+  background: var(--card);
+  border: 1rpx solid var(--line);
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  font-size: 30rpx;
+  border-radius: 999rpx;
+  padding: 20rpx 48rpx;
+  text-align: center;
+}
+.btn-ghost {
+  border: 1rpx dashed var(--pending);
+  background: transparent;
+  color: var(--text2);
+  font-size: 28rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  text-align: center;
+}
+.tag-overdue {
+  font-size: 20rpx;
+  color: #fff;
+  background: var(--warn);
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+  margin-left: 12rpx;
+}
+.empty {
+  text-align: center;
+  padding: 140rpx 40rpx;
+}
+.empty .icon { font-size: 100rpx; }
+.empty p { color: var(--text2); font-size: 30rpx; margin: 28rpx 0 44rpx; }
+
+/* 进度条 */
+.bar { height: 14rpx; background: #EDF1F0; border-radius: 999rpx; margin-top: 24rpx; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--primary); border-radius: 999rpx; }

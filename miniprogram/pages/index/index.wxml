@@ -1,0 +1,70 @@
+<view class="page">
+  <!-- 顶部：日期 -->
+  <view class="topbar">
+    <view>
+      <view class="title">今天</view>
+      <view class="date">{{dateLabel}}</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{empty}}">
+    <view class="icon">🪴</view>
+    <p>还没有添加植物</p>
+    <view class="btn-primary" bindtap="goGarden">添加第一盆植物</view>
+  </view>
+
+  <block wx:else>
+    <!-- 今日进度 -->
+    <view class="card progress {{done === total && total > 0 ? 'all-done' : ''}}">
+      <view class="row">
+        <text class="label">今日养护</text>
+        <text class="num">{{done}} / {{total}}</text>
+      </view>
+      <view class="bar"><i style="width: {{rate}}%"></i></view>
+      <view class="cheer" wx:if="{{done === total && total > 0}}">今天的养护都完成啦 ✓</view>
+      <view class="sub" wx:else>连续养护 {{streak}} 天 · 到点未做 {{passed}} 项</view>
+    </view>
+
+    <!-- 按植物分组的待办卡片 -->
+    <view class="card plant-card" wx:for="{{groups}}" wx:for-item="g" wx:key="plantId">
+      <view class="pc-head">
+        <text class="pc-name">{{g.plantName}}</text>
+        <text class="pc-count {{g.doneCount === g.totalCount ? 'done' : ''}}">{{g.doneCount}} / {{g.totalCount}}</text>
+      </view>
+      <view class="pc-place">📍 {{g.place || '未填写位置'}}</view>
+
+      <view class="pc-tasks">
+        <view
+          wx:for="{{g.items}}"
+          wx:for-item="t"
+          wx:for-index="idx"
+          wx:key="type"
+          class="todo {{t.status === 1 ? 'done' : ''}} {{t.passed ? 'overdue' : ''}} {{idx >= 3 && !expanded[g.plantId] ? 'extra' : ''}}"
+          data-plant="{{t.plantId}}"
+          data-type="{{t.type}}"
+          bindtap="onToggleTask">
+          <view class="meta">
+            <view class="time-row">
+              <text>{{t.planTime}}</text>
+              <text wx:if="{{t.passed}}" class="tag-overdue">已过时间</text>
+            </view>
+            <view class="type">{{t.type}} · 每 {{t.intervalDays}} 天</view>
+          </view>
+          <view class="circle">{{t.status === 1 ? '✓' : ''}}</view>
+        </view>
+      </view>
+
+      <view class="pc-toggle" wx:if="{{g.totalCount > 3}}" data-plant="{{g.plantId}}" bindtap="onToggleFold">
+        <text>{{expanded[g.plantId] ? '收起' : '展开全部 ' + g.totalCount + ' 项'}}</text>
+        <text>{{expanded[g.plantId] ? '▴' : '▾'}}</text>
+      </view>
+    </view>
+
+    <!-- 演示工具 -->
+    <view class="demo">
+      <view class="demo-btn" bindtap="onCheckAll">一键全打卡</view>
+      <view class="demo-btn" bindtap="onReset">恢复演示数据</view>
+    </view>
+  </block>
+</view>

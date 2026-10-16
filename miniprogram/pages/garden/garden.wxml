@@ -1,0 +1,98 @@
+<view class="page">
+  <view class="topbar">
+    <view>
+      <view class="title">花园</view>
+      <view class="sub">{{countLabel}}</view>
+    </view>
+    <view class="btn-add" bindtap="openSheet" data-id="0">＋ 添加</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{plants.length === 0}}">
+    <view class="icon">🪴</view>
+    <p>花园里还没有植物</p>
+    <view class="btn-primary" bindtap="openSheet" data-id="0">添加第一盆植物</view>
+  </view>
+
+  <!-- 植物列表 -->
+  <view class="card plant {{p.status === 0 ? 'archived' : ''}}" wx:for="{{plants}}" wx:for-item="p" wx:key="id">
+    <view class="head">
+      <view class="avatar">{{p.emoji}}</view>
+      <view class="info">
+        <view class="name">{{p.name}}</view>
+        <view class="species">{{p.species || '未填写品种'}}</view>
+        <view class="loc">📍 {{p.place || '未填写位置'}}</view>
+      </view>
+      <view class="ops">
+        <view class="op" catchtap="openSheet" data-id="{{p.id}}">编辑</view>
+        <view wx:if="{{p.status === 1}}" class="op" catchtap="onArchive" data-id="{{p.id}}">归档</view>
+        <view wx:else class="op" catchtap="onRestore" data-id="{{p.id}}">恢复</view>
+        <view wx:if="{{p.status === 0}}" class="op danger" catchtap="onDelete" data-id="{{p.id}}">删除</view>
+      </view>
+    </view>
+    <view class="plans" wx:if="{{p.plans.length > 0}}">
+      <view class="plan" wx:for="{{p.plans}}" wx:for-item="pl" wx:key="type">
+        <text>{{pl.type}}</text>
+        <text class="plan-val">每 {{pl.intervalDays}} 天 · {{pl.remindTime}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 植物编辑弹层 -->
+  <view class="mask" wx:if="{{sheetVisible}}" bindtap="closeSheet">
+    <view class="sheet" catchtap="noop">
+      <view class="title-row">
+        <text class="sheet-title">{{sheetTitle}}</text>
+        <text class="close" bindtap="closeSheet">✕</text>
+      </view>
+
+      <view class="field {{nicknameError ? 'invalid' : ''}}">
+        <label>昵称（必填）</label>
+        <input value="{{nickname}}" placeholder="例如：绿萝 bb" maxlength="12" bindinput="onNicknameInput" />
+        <view class="err" wx:if="{{nicknameError}}">请填写植物昵称</view>
+      </view>
+      <view class="field">
+        <label>品种</label>
+        <input value="{{species}}" placeholder="例如：绿萝" maxlength="12" bindinput="onSpeciesInput" />
+      </view>
+      <view class="field">
+        <label>位置</label>
+        <input value="{{place}}" placeholder="例如：客厅电视柜" maxlength="12" bindinput="onPlaceInput" />
+      </view>
+
+      <view class="plan-block">
+        <view class="block-title">养护计划</view>
+        <view class="plan-tip">点类型名可选常用类型，也可以自己输入；每盆最多 {{maxPlans}} 条</view>
+        <view class="plan-row" wx:for="{{planRows}}" wx:for-item="row" wx:for-index="idx" wx:key="type">
+          <view class="type-chip" catchtap="openPicker" data-idx="{{idx}}">{{row.type}} ▾</view>
+          <text class="seg-label">每</text>
+          <input class="p-interval" type="number" value="{{row.intervalDays}}" bindinput="onIntervalInput" data-idx="{{idx}}" />
+          <text class="seg-label">天</text>
+          <picker mode="time" value="{{row.remindTime}}" bindchange="onTimeInput" data-idx="{{idx}}">
+            <view class="p-time">{{row.remindTime}}</view>
+          </picker>
+          <text class="del" catchtap="delPlanRow" data-idx="{{idx}}">删除</text>
+        </view>
+        <view class="btn-ghost" bindtap="addPlanRow">＋ 添加养护项</view>
+      </view>
+
+      <view class="btn-save" bindtap="saveSheet">保存</view>
+    </view>
+  </view>
+
+  <!-- 养护类型选择器 -->
+  <view class="mask" wx:if="{{pickerVisible}}" bindtap="closePicker">
+    <view class="picker" catchtap="noop">
+      <view class="picker-title">选择养护类型</view>
+      <view class="preset-row">
+        <view class="preset" wx:for="{{presets}}" wx:for-item="t" wx:key="*this" catchtap="applyPreset" data-type="{{t}}">{{t}}</view>
+      </view>
+      <view class="picker-label">自定义类型</view>
+      <view class="custom-row">
+        <input value="{{customType}}" placeholder="输入名称，如：擦叶子" maxlength="8" bindinput="onCustomInput" />
+        <view class="custom-ok" bindtap="applyCustom">确定</view>
+      </view>
+      <view class="cancel" bindtap="closePicker">取消</view>
+    </view>
+  </view>
+</view>

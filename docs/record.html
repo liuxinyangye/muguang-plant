@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>沐光 · 记录</title>
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidenav">
+    <div class="logo">🌿 沐光</div>
+    <a href="index.html">☀️ 今日</a>
+    <a href="garden.html">🪴 花园</a>
+    <a class="active" href="record.html">📊 记录</a>
+    <a href="settings.html">⚙️ 我的</a>
+  </nav>
+
+  <main class="content">
+    <div class="topbar"><h1>记录</h1></div>
+
+    <div class="seg" id="seg">
+      <button class="on" data-days="7">近 7 天</button>
+      <button data-days="30">近 30 天</button>
+    </div>
+
+    <div class="stat-card">
+      <div class="donut" id="donut"><i id="rate">0%</i></div>
+      <div class="nums">
+        <div class="t" id="rateTitle">近 7 天完成率</div>
+        <div class="d" id="rateDetail"></div>
+      </div>
+    </div>
+
+    <div id="recGroups"></div>
+
+    <div class="empty" id="emptyView">
+      <div class="icon">📭</div>
+      <p>这段时间还没有养护记录</p>
+    </div>
+  </main>
+
+  <aside class="overview">
+    <h3>统计概览</h3>
+    <div class="stat"><span>累计打卡</span><b id="ovCheckins">0 次</b></div>
+    <div class="stat"><span>最常养护</span><b id="ovTopType">—</b></div>
+    <div class="stat"><span>最勤植物</span><b id="ovTopPlant">—</b></div>
+    <div class="stat"><span>连续养护</span><b id="ovStreak">0 天</b></div>
+  </aside>
+</div>
+
+<nav class="tabbar">
+  <a href="index.html"><span class="ico">☀️</span>今日</a>
+  <a href="garden.html"><span class="ico">🪴</span>花园</a>
+  <a class="active" href="record.html"><span class="ico">📊</span>记录</a>
+</nav>
+
+<div class="bp">断点：<span class="sm">sm · 手机 &lt;600</span><span class="md">md · 平板 600–840</span><span class="lg">lg · 2in1 &gt;840</span></div>
+
+<script src="assets/app.js"></script>
+<script>
+  (function () {
+    var days = 7;
+
+    function render() {
+      // 统计卡（与记录页清单同源，数字对得上）
+      var a = MG.adherence(days);
+      document.getElementById('rate').textContent = a.rate + '%';
+      document.getElementById('donut').style.background =
+        'conic-gradient(var(--primary) 0 ' + a.rate + '%, #EDF1F0 ' + a.rate + '% 100%)';
+      document.getElementById('rateTitle').textContent = '近 ' + days + ' 天完成率';
+      document.getElementById('rateDetail').innerHTML =
+        '应做 <b>' + a.total + '</b> 次 ｜ 完成 <b>' + a.done + '</b> 次 ｜ 漏做 <span class="miss">' + a.missed + '</span> 次';
+
+      // 按日分组明细
+      var groups = MG.groupsOf(days);
+      var box = document.getElementById('recGroups');
+      document.getElementById('emptyView').style.display = groups.length === 0 ? 'block' : 'none';
+      box.innerHTML = groups.map(function (g) {
+        var html = '<div class="rec-group"><div class="group-date">' + MG.fmtDateCN(g.date) + ' ' + MG.relLabel(g.date) +
+                   ' · ' + g.doneCount + '/' + g.totalCount + '</div>';
+        g.items.forEach(function (it) {
+          var plant = MG.plantById(it.plantId) || { name: it.plantName };
+          var r = null;
+          MG.state().records.forEach(function (x) {
+            if (x.plantId === it.plantId && x.type === it.type && x.planDate === g.date) { r = x; }
+          });
+          var done = it.status === MG.ST.DONE;
+          var skipped = it.status === MG.ST.SKIPPED;
+          html += '<div class="rec' + (skipped ? ' skipped' : '') + '">' +
+                  '<div class="avatar">' + MG.emojiFor(plant) + '</div>' +
+                  '<div class="meta"><div class="name">' + MG.esc(plant.name) + '</div>' +
+                  '<div class="type">' + MG.esc(it.type) + ' · 每 ' + it.intervalDays + ' 天' +
+                    (it.passed ? ' · 已过时间' : '') + '</div></div>' +
+                  '<div class="time">' + (done && r ? MG.fmtTime(r.doneAt) : MG.esc(it.planTime)) + '</div>' +
+                  (done ? '<div class="ok">✓</div>' : (skipped ? '<div class="miss">跳</div>' : '<div class="miss">—</div>')) +
+                  '</div>';
+        });
+        html += '</div>';
+        return html;
+      }).join('');
+
+      // 右侧概览
+      var ov = MG.overview();
+      document.getElementById('ovCheckins').textContent = ov.checkins + ' 次';
+      document.getElementById('ovTopType').textContent = ov.topType;
+      document.getElementById('ovTopPlant').textContent = ov.topPlant;
+      document.getElementById('ovStreak').textContent = ov.streak + ' 天';
+    }
+
+    document.getElementById('seg').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) { return; }
+      Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      days = +btn.getAttribute('data-days');
+      render();
+    });
+
+    render();
+  })();
+</script>
+</body>
+</html>

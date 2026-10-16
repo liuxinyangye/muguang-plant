@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>沐光 · 今日</title>
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div class="app">
+  <!-- 左侧导航：md / lg 显示 -->
+  <nav class="sidenav">
+    <div class="logo">🌿 沐光</div>
+    <a class="active" href="index.html">☀️ 今日</a>
+    <a href="garden.html">🪴 花园</a>
+    <a href="record.html">📊 记录</a>
+    <a href="settings.html">⚙️ 我的</a>
+  </nav>
+
+  <!-- 中间主区 -->
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <h1>今天</h1>
+        <div class="date" id="dateLabel"></div>
+      </div>
+      <a class="settings" href="settings.html">设置</a>
+    </div>
+
+    <!-- 有待办时的主视图 -->
+    <div id="normalView">
+      <div class="progress-card" id="progressCard">
+        <div class="row">
+          <span class="label">今日养护</span>
+          <span class="num" id="progressNum">0 / 0</span>
+        </div>
+        <div class="bar"><i id="progressBar" style="width: 0%"></i></div>
+        <div class="cheer">今天的养护都完成啦 ✓</div>
+      </div>
+
+      <!-- 按植物分组的待办卡片（JS 渲染） -->
+      <div class="todo-list" id="todoList"></div>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="empty" id="emptyView">
+      <div class="icon">🪴</div>
+      <p>还没有添加植物</p>
+      <a class="btn-primary" href="garden.html">添加第一盆植物</a>
+    </div>
+  </main>
+
+  <!-- 右侧今日概况：lg 显示 -->
+  <aside class="overview">
+    <h3>今日概况</h3>
+    <div class="donut-wrap">
+      <div class="donut" id="donut"><i id="donutNum">0%</i></div>
+    </div>
+    <div class="stat"><span>植物总数</span><b id="ovPlants">0 盆</b></div>
+    <div class="stat"><span>今日待办</span><b id="ovTotal">0 项</b></div>
+    <div class="stat"><span>已完成</span><b id="ovDone">0 项</b></div>
+    <div class="stat"><span>到点未做</span><b id="ovPassed">0 项</b></div>
+    <div class="stat"><span>连续养护</span><b id="ovStreak">0 天</b></div>
+  </aside>
+</div>
+
+<!-- 底部 Tab：sm 显示 -->
+<nav class="tabbar">
+  <a class="active" href="index.html"><span class="ico">☀️</span>今日</a>
+  <a href="garden.html"><span class="ico">🪴</span>花园</a>
+  <a href="record.html"><span class="ico">📊</span>记录</a>
+</nav>
+
+<!-- 演示工具条：方便演示与截图 -->
+<div class="demo" id="demoBar">
+  <button id="btnAllDone">一键全打卡</button>
+  <button id="btnReset">恢复演示数据</button>
+</div>
+<div class="bp">断点：<span class="sm">sm · 手机 &lt;600</span><span class="md">md · 平板 600–840</span><span class="lg">lg · 2in1 &gt;840</span></div>
+
+<script src="assets/app.js"></script>
+<script>
+  (function () {
+    var collapsedIds = []; // 折叠状态存视图层（与 App 一致，刷新页面回到默认折叠）
+
+    function render() {
+      var groups = MG.planGrouped(MG.todayStr());
+      var list = document.getElementById('todoList');
+      var normalView = document.getElementById('normalView');
+      var emptyView = document.getElementById('emptyView');
+
+      if (groups.length === 0) {
+        normalView.style.display = 'none';
+        emptyView.style.display = 'block';
+      } else {
+        normalView.style.display = 'block';
+        emptyView.style.display = 'none';
+        list.innerHTML = groups.map(function (g) {
+          var open = collapsedIds.indexOf(g.plantId) >= 0;
+          var html = '<div class="plant-card' + (open ? ' open' : '') + '" data-plant="' + g.plantId + '">';
+          html += '<div class="pc-head"><span class="pc-name">' + MG.esc(g.plantName) + '</span>' +
+                  '<span class="pc-count">' + g.doneCount + ' / ' + g.totalCount + '</span></div>';
+          html += '<div class="pc-place">📍 ' + MG.esc(g.place || '未填写位置') + '</div>';
+          html += '<div class="pc-tasks">';
+          g.items.forEach(function (it, idx) {
+            var extra = idx >= 3 ? ' extra' : '';
+            var cls = 'todo' + (it.status === MG.ST.DONE ? ' done' : '') + (it.passed ? ' overdue' : '') + extra;
+            html += '<div class="' + cls + '" data-type="' + MG.esc(it.type) + '">' +
+                    '<div class="meta">' +
+                      '<div class="time-row">' + MG.esc(it.planTime) +
+                        (it.passed ? '<span class="tag-overdue">已过时间</span>' : '') +
+                      '</div>' +
+                      '<div class="type">' + MG.esc(it.type) + ' · 每 ' + it.intervalDays + ' 天</div>' +
+                    '</div>' +
+                    '<button class="circle" aria-label="打卡">✓</button>' +
+                    '</div>';
+          });
+          html += '</div>';
+          if (g.totalCount > 3) {
+            html += '<div class="pc-toggle"><span class="t-label">' + (open ? '收起' : '展开全部 ' + g.totalCount + ' 项') +
+                    '</span><span class="t-arrow">' + (open ? '▴' : '▾') + '</span></div>';
+          }
+          html += '</div>';
+          return html;
+        }).join('');
+      }
+
+      // 总进度 + 右侧概况
+      var items = MG.planOf(MG.todayStr());
+      var done = 0, passed = 0;
+      items.forEach(function (it) { if (it.status === MG.ST.DONE) { done++; } if (it.passed) { passed++; } });
+      var total = items.length;
+      var rate = total > 0 ? Math.round(done * 100 / total) : 0;
+      document.getElementById('progressNum').textContent = done + ' / ' + total;
+      document.getElementById('progressBar').style.width = rate + '%';
+      document.getElementById('donutNum').textContent = rate + '%';
+      document.getElementById('donut').style.background =
+        'conic-gradient(var(--primary) 0 ' + rate + '%, #EDF1F0 ' + rate + '% 100%)';
+      document.getElementById('progressCard').classList.toggle('all-done', total > 0 && done === total);
+      var ov = MG.overview();
+      document.getElementById('ovPlants').textContent = ov.plantTotal + ' 盆';
+      document.getElementById('ovTotal').textContent = total + ' 项';
+      document.getElementById('ovDone').textContent = done + ' 项';
+      document.getElementById('ovPassed').textContent = passed + ' 项';
+      document.getElementById('ovStreak').textContent = ov.streak + ' 天';
+      document.getElementById('dateLabel').textContent = MG.fmtDateFullCN(MG.todayStr());
+    }
+
+    // 打卡 / 撤销：点圆圈即切换，写 localStorage，整页重渲染（与 App 就地刷新一致）
+    document.getElementById('todoList').addEventListener('click', function (e) {
+      var toggle = e.target.closest('.pc-toggle');
+      if (toggle) {
+        var card = toggle.closest('.plant-card');
+        var pid = +card.getAttribute('data-plant');
+        var i = collapsedIds.indexOf(pid);
+        if (i >= 0) { collapsedIds.splice(i, 1); } else { collapsedIds.push(pid); }
+        render();
+        return;
+      }
+      var btn = e.target.closest('.circle');
+      if (!btn) { return; }
+      var row = btn.closest('.todo');
+      var plantId = +row.closest('.plant-card').getAttribute('data-plant');
+      var type = row.getAttribute('data-type');
+      MG.toggle(plantId, type, MG.todayStr());
+      render();
+    });
+
+    // 演示工具条
+    document.getElementById('btnAllDone').addEventListener('click', function () {
+      MG.planOf(MG.todayStr()).forEach(function (it) {
+        if (it.status !== MG.ST.DONE) { MG.toggle(it.plantId, it.type, MG.todayStr()); }
+      });
+      render();
+      MG.toast('已全部打卡');
+    });
+    document.getElementById('btnReset').addEventListener('click', function () {
+      MG.resetDemo();
+      collapsedIds = [];
+      render();
+      MG.toast('已恢复演示数据');
+    });
+
+    render();
+  })();
+</script>
+</body>
+</html>

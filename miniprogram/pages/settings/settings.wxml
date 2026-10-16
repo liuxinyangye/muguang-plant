@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="title">我的</view>
+
+  <view class="group">
+    <view class="g-title">提醒</view>
+    <view class="row">
+      <view class="label">养护提醒<text class="sub">开关状态与鸿蒙 App 一致，小程序端不发送系统通知</text></view>
+      <view class="switch {{remind ? 'on' : ''}}" bindtap="onSwitch"></view>
+    </view>
+    <view class="row">
+      <view class="label">发送测试通知<text class="sub">小程序端以弹窗演示</text></view>
+      <view class="btn-line" bindtap="onTestNotif">发送</view>
+    </view>
+  </view>
+
+  <view class="group">
+    <view class="g-title">数据</view>
+    <view class="row">
+      <view class="label">数据存储<text class="sub">所有数据仅保存在本机，不上传</text></view>
+      <text class="val">本机 Storage</text>
+    </view>
+    <view class="row">
+      <view class="label">当前数据<text class="sub">植物 / 养护计划 / 打卡记录</text></view>
+      <text class="val">{{plantCount}} 盆 / {{planCount}} 条 / {{recordCount}} 次</text>
+    </view>
+    <view class="row">
+      <view class="label">清空全部数据<text class="sub">删除所有植物与养护记录</text></view>
+      <view class="btn-danger-line" bindtap="onClear">清空</view>
+    </view>
+  </view>
+
+  <view class="group">
+    <view class="g-title">关于</view>
+    <view class="row"><view class="label">版本</view><text class="val">1.0.0（实训版）</text></view>
+    <view class="row"><view class="label">关于沐光</view><text class="val">植物养护助手 · 小程序端</text></view>
+    <view class="row"><view class="label">同源工程</view><text class="val">HarmonyOS App · 数据模型一致</text></view>
+  </view>
+</view>

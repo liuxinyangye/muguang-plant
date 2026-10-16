@@ -1,0 +1,24 @@
+{
+  "description": "沐光 · 植物养护助手（鸿蒙实训课程 · 小程序端）",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.4.10",
+  "appid": "wx4edc59150010e73a",
+  "projectname": "muguang-miniprogram",
+  "condition": {}
+}

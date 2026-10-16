@@ -1,0 +1,50 @@
+/* 今日页样式 */
+.page { padding: 24rpx 24rpx 160rpx; }
+
+.topbar { margin-bottom: 24rpx; }
+.topbar .title { font-size: 48rpx; font-weight: 600; }
+.topbar .date { color: var(--text2); font-size: 26rpx; margin-top: 8rpx; }
+
+/* 进度卡 */
+.progress .row { display: flex; justify-content: space-between; align-items: center; }
+.progress .label { font-size: 32rpx; font-weight: 600; }
+.progress .num { color: var(--primary); font-size: 32rpx; font-weight: 600; }
+.progress .cheer { color: var(--done); font-size: 26rpx; margin-top: 16rpx; }
+.progress .sub { color: var(--text2); font-size: 24rpx; margin-top: 16rpx; }
+
+/* 植物分组卡片 */
+.pc-head { display: flex; justify-content: space-between; align-items: center; }
+.pc-name { font-size: 34rpx; font-weight: 600; }
+.pc-count { font-size: 28rpx; color: var(--text2); }
+.pc-count.done { color: var(--done); }
+.pc-place { font-size: 22rpx; color: var(--text2); margin-top: 6rpx; }
+.pc-tasks { margin-top: 8rpx; }
+
+.todo { display: flex; align-items: center; padding: 22rpx 0; }
+.todo + .todo { border-top: 1rpx solid var(--line); }
+.todo.extra { display: none; }
+.todo .meta { flex: 1; min-width: 0; }
+.todo .time-row { display: flex; align-items: center; font-size: 26rpx; color: var(--text2); }
+.todo .type { font-size: 26rpx; color: var(--text2); margin-top: 6rpx; }
+.todo.done .time-row, .todo.done .type { color: var(--pending); }
+
+.circle {
+  width: 72rpx; height: 72rpx; border-radius: 50%;
+  border: 3rpx solid var(--pending);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34rpx; color: transparent; flex-shrink: 0;
+}
+.todo.done .circle { background: var(--done); border-color: var(--done); color: #fff; }
+
+.pc-toggle {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12rpx; padding-top: 22rpx; border-top: 1rpx solid var(--line);
+  color: var(--primary); font-size: 26rpx;
+}
+
+/* 演示工具 */
+.demo { display: flex; gap: 16rpx; justify-content: center; margin-top: 8rpx; }
+.demo-btn {
+  font-size: 24rpx; color: var(--text2); background: var(--card);
+  border: 1rpx solid var(--line); border-radius: 999rpx; padding: 12rpx 28rpx;
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>沐光 · 我的</title>
+<link rel="icon" type="image/png" href="assets/icon.png">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidenav">
+    <div class="logo">🌿 沐光</div>
+    <a href="index.html">☀️ 今日</a>
+    <a href="garden.html">🪴 花园</a>
+    <a href="record.html">📊 记录</a>
+    <a class="active" href="settings.html">⚙️ 我的</a>
+  </nav>
+
+  <main class="content">
+    <div class="topbar">
+      <a class="back" href="index.html">‹</a>
+      <h1>我的</h1>
+    </div>
+
+    <div class="group">
+      <div class="g-title">提醒</div>
+      <div class="row">
+        <div class="label">养护提醒<span class="sub">开关状态与鸿蒙 App 一致，web 版不发送系统通知</span></div>
+        <button class="switch" id="swRemind" aria-label="养护提醒开关"></button>
+      </div>
+      <div class="row">
+        <div class="label">发送测试通知<span class="sub">web 版以页内横幅演示，真机通知见鸿蒙端</span></div>
+        <button class="btn-line" id="btnTestNotif">发送</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="g-title">数据</div>
+      <div class="row">
+        <div class="label">数据存储<span class="sub">web 版所有数据仅保存在本浏览器，不上传</span></div>
+        <span class="val">浏览器本地存储</span>
+      </div>
+      <div class="row">
+        <div class="label">当前数据<span class="sub" id="dataSummary">—</span></div>
+        <span class="val" id="dataCount">—</span>
+      </div>
+      <div class="row">
+        <div class="label">清空全部数据<span class="sub">删除所有植物与养护记录</span></div>
+        <button class="btn-danger-line" id="btnClear">清空</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="g-title">关于</div>
+      <div class="row"><div class="label">版本</div><span class="val">1.0.0（实训版）</span></div>
+      <div class="row"><div class="label">关于沐光</div><span class="val">植物养护助手 · web 版</span></div>
+      <div class="row"><div class="label">同源工程</div><span class="val">HarmonyOS App · 数据模型一致</span></div>
+    </div>
+  </main>
+
+  <aside class="overview">
+    <h3>说明</h3>
+    <div class="stat"><span>页面层级</span><b>二级页</b></div>
+    <div class="stat"><span>入口</span><b>今日页右上「设置」</b></div>
+    <div class="stat"><span>对应代码</span><b>pages/Settings.ets</b></div>
+    <div class="stat"><span>web 端形态</span><b>响应式 sm/md/lg</b></div>
+  </aside>
+</div>
+
+<!-- 清空确认对话框 -->
+<div class="dialog-mask" id="dialogMask">
+  <div class="dialog">
+    <h3>清空全部数据？</h3>
+    <p>将删除所有植物、养护计划与养护记录，且无法恢复。确定要清空吗？</p>
+    <div class="ops">
+      <button class="cancel" id="btnDialogCancel">取消</button>
+      <button class="confirm" id="btnDialogOk">确定清空</button>
+    </div>
+  </div>
+</div>
+
+<div class="bp">断点：<span class="sm">sm · 手机 &lt;600</span><span class="md">md · 平板 600–840</span><span class="lg">lg · 2in1 &gt;840</span></div>
+
+<script src="assets/app.js"></script>
+<script>
+  (function () {
+    var sw = document.getElementById('swRemind');
+    var s = MG.state();
+
+    function refresh() {
+      sw.classList.toggle('on', !!MG.state().prefs.remind);
+      var st = MG.state();
+      document.getElementById('dataCount').textContent = st.plants.length + ' 盆 / ' + st.plans.length + ' 条 / ' + st.records.length + ' 次';
+      document.getElementById('dataSummary').textContent = '植物 / 养护计划 / 打卡记录';
+    }
+
+    sw.addEventListener('click', function () {
+      var on = !MG.state().prefs.remind;
+      MG.setRemind(on);
+      refresh();
+      MG.toast(on ? '养护提醒已开启' : '养护提醒已关闭');
+    });
+
+    document.getElementById('btnTestNotif').addEventListener('click', function () {
+      // 取今天第一个待办做演示文案
+      var items = MG.planOf(MG.todayStr()).filter(function (it) { return it.status !== MG.ST.DONE; });
+      if (items.length > 0) {
+        var it = items[0];
+        MG.notif('该给' + it.plantName + MG.esc(it.type) + '啦', '计划时刻 ' + it.planTime + ' · 每 ' + it.intervalDays + ' 天');
+      } else {
+        MG.notif('今天的养护都完成啦', '去看看记录页的完成率吧');
+      }
+    });
+
+    var mask = document.getElementById('dialogMask');
+    document.getElementById('btnClear').addEventListener('click', function () { mask.classList.add('open'); });
+    document.getElementById('btnDialogCancel').addEventListener('click', function () { mask.classList.remove('open'); });
+    mask.addEventListener('click', function (e) { if (e.target === this) { this.classList.remove('open'); } });
+    document.getElementById('btnDialogOk').addEventListener('click', function () {
+      MG.clearAll();
+      mask.classList.remove('open');
+      refresh();
+      MG.toast('已清空全部数据');
+    });
+
+    refresh();
+  })();
+</script>
+</body>
+</html>

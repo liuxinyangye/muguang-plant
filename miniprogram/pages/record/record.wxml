@@ -1,0 +1,53 @@
+<view class="page">
+  <view class="title">记录</view>
+
+  <!-- 7/30 天切换 -->
+  <view class="seg">
+    <view class="seg-btn {{days === 7 ? 'on' : ''}}" bindtap="onSeg" data-days="7">近 7 天</view>
+    <view class="seg-btn {{days === 30 ? 'on' : ''}}" bindtap="onSeg" data-days="30">近 30 天</view>
+  </view>
+
+  <!-- 完成率统计卡 -->
+  <view class="card stat-card">
+    <view class="donut" style="background: conic-gradient(var(--primary) 0 {{rate}}%, #EDF1F0 {{rate}}% 100%)">
+      <view class="donut-inner">{{rate}}%</view>
+    </view>
+    <view class="nums">
+      <view class="t">近 {{days}} 天完成率</view>
+      <view class="d">应做 <text class="b">{{total}}</text> 次 ｜ 完成 <text class="b">{{done}}</text> 次 ｜ 漏做 <text class="miss">{{missed}}</text> 次</view>
+      <view class="d2">连续养护 {{streak}} 天 · 累计打卡 {{checkins}} 次</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{groups.length === 0}}">
+    <view class="icon">📭</view>
+    <p>这段时间还没有养护记录</p>
+  </view>
+
+  <!-- 按日分组明细 -->
+  <block wx:else>
+    <view class="rec-group" wx:for="{{groups}}" wx:for-item="g" wx:key="date">
+      <view class="group-date">{{g.dateLabel}}</view>
+      <view class="card rec {{it.status === 2 ? 'skipped' : ''}}" wx:for="{{g.items}}" wx:for-item="it" wx:key="key">
+        <view class="avatar">{{it.emoji}}</view>
+        <view class="meta">
+          <view class="name">{{it.name}}</view>
+          <view class="type">{{it.type}} · 每 {{it.intervalDays}} 天{{it.passed ? ' · 已过时间' : ''}}</view>
+        </view>
+        <view class="time">{{it.time}}</view>
+        <view class="ok" wx:if="{{it.status === 1}}">✓</view>
+        <view class="miss-mark" wx:elif="{{it.status === 2}}">跳</view>
+        <view class="miss-mark" wx:else>—</view>
+      </view>
+    </view>
+
+    <!-- 概览 -->
+    <view class="card overview">
+      <view class="ov-row"><text>累计打卡</text><text class="b">{{checkins}} 次</text></view>
+      <view class="ov-row"><text>最常养护</text><text class="b">{{topType}}</text></view>
+      <view class="ov-row"><text>最勤植物</text><text class="b">{{topPlant}}</text></view>
+      <view class="ov-row"><text>连续养护</text><text class="b">{{streak}} 天</text></view>
+    </view>
+  </block>
+</view>

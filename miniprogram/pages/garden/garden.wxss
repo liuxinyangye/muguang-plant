@@ -1,0 +1,109 @@
+/* 花园页样式 */
+.page { padding: 24rpx 24rpx 60rpx; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24rpx; }
+.topbar .title { font-size: 48rpx; font-weight: 600; }
+.topbar .sub { color: var(--text2); font-size: 24rpx; margin-top: 8rpx; }
+.btn-add {
+  background: var(--primary); color: #fff; font-size: 26rpx;
+  border-radius: 999rpx; padding: 14rpx 30rpx;
+}
+
+/* 植物卡片 */
+.plant .head { display: flex; align-items: center; gap: 20rpx; }
+.plant .avatar {
+  width: 88rpx; height: 88rpx; border-radius: 20rpx; background: var(--primary-soft);
+  display: flex; align-items: center; justify-content: center; font-size: 46rpx; flex-shrink: 0;
+}
+.plant .info { flex: 1; min-width: 0; }
+.plant .name { font-size: 34rpx; font-weight: 600; }
+.plant .species { font-size: 26rpx; color: var(--text2); margin-top: 4rpx; }
+.plant .loc {
+  display: inline-block; font-size: 20rpx; color: var(--primary);
+  background: var(--primary-soft); border-radius: 999rpx; padding: 4rpx 18rpx; margin-top: 10rpx;
+}
+.plant .ops { display: flex; gap: 12rpx; flex-shrink: 0; }
+.plant .op {
+  border: 1rpx solid var(--line); color: var(--text2); font-size: 22rpx;
+  padding: 8rpx 20rpx; border-radius: 999rpx;
+}
+.plant .op.danger { color: var(--danger); border-color: var(--danger); }
+.plant.archived { opacity: .55; }
+.plant .plans {
+  margin-top: 20rpx; border-top: 1rpx dashed var(--line); padding-top: 18rpx;
+  display: flex; flex-direction: column; gap: 10rpx;
+}
+.plant .plan { display: flex; justify-content: space-between; font-size: 24rpx; color: var(--text2); }
+.plant .plan .plan-val { color: var(--text); }
+
+/* 弹层 */
+.mask {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(30, 40, 37, .4); z-index: 50;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  background: var(--card); width: 100%; max-height: 88vh; overflow-y: auto;
+  border-radius: 32rpx 32rpx 0 0; padding: 32rpx 28rpx 48rpx;
+}
+.title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24rpx; }
+.sheet-title { font-size: 36rpx; font-weight: 600; }
+.close { font-size: 36rpx; color: var(--text2); padding: 0 12rpx; }
+
+.field { margin-bottom: 24rpx; }
+.field label { display: block; font-size: 26rpx; color: var(--text2); margin-bottom: 10rpx; }
+.field input {
+  width: 100%; font-size: 30rpx; padding: 20rpx 24rpx;
+  border: 1rpx solid var(--line); border-radius: 16rpx; background: #FAFBFA;
+}
+.field.invalid input { border-color: var(--danger); }
+.field .err { color: var(--danger); font-size: 22rpx; margin-top: 8rpx; }
+
+.plan-block { border-top: 1rpx solid var(--line); margin-top: 8rpx; padding-top: 24rpx; }
+.block-title { font-size: 30rpx; font-weight: 600; margin-bottom: 10rpx; }
+.plan-tip { font-size: 22rpx; color: var(--text2); margin-bottom: 18rpx; }
+.plan-row {
+  background: #FAFBFA; border: 1rpx solid var(--line); border-radius: 16rpx;
+  padding: 20rpx; margin-bottom: 16rpx;
+  display: flex; gap: 14rpx; align-items: center; flex-wrap: wrap;
+}
+.type-chip {
+  font-size: 26rpx; color: var(--primary); background: var(--primary-soft);
+  border-radius: 12rpx; padding: 12rpx 22rpx;
+}
+.seg-label { color: var(--text2); font-size: 24rpx; }
+.p-interval {
+  font-size: 26rpx; padding: 10rpx; border: 1rpx solid var(--line);
+  border-radius: 10rpx; background: #fff; width: 100rpx;
+}
+.p-time {
+  font-size: 26rpx; padding: 10rpx 18rpx; border: 1rpx solid var(--line);
+  border-radius: 10rpx; background: #fff;
+}
+.del { color: var(--danger); font-size: 24rpx; }
+.btn-save {
+  margin-top: 28rpx; background: var(--primary); color: #fff;
+  font-size: 32rpx; padding: 22rpx; border-radius: 999rpx; text-align: center;
+}
+
+/* 类型选择器 */
+.picker {
+  background: var(--card); width: 100%; border-radius: 32rpx 32rpx 0 0; padding: 32rpx 28rpx 48rpx;
+}
+.picker-title { font-size: 34rpx; font-weight: 600; }
+.preset-row { display: flex; gap: 16rpx; flex-wrap: wrap; margin: 24rpx 0; }
+.preset {
+  font-size: 26rpx; color: var(--primary); background: var(--primary-soft);
+  border-radius: 12rpx; padding: 16rpx 30rpx;
+}
+.picker-label { font-size: 22rpx; color: var(--text2); margin: 20rpx 0 12rpx; }
+.custom-row { display: flex; gap: 16rpx; }
+.custom-row input {
+  flex: 1; font-size: 26rpx; padding: 18rpx 22rpx;
+  border: 1rpx solid var(--line); border-radius: 14rpx; background: #FAFBFA;
+}
+.custom-ok {
+  background: var(--primary); color: #fff; font-size: 26rpx;
+  padding: 0 36rpx; border-radius: 14rpx; display: flex; align-items: center;
+}
+.cancel { text-align: center; color: var(--text2); font-size: 26rpx; margin-top: 20rpx; padding: 18rpx; }
