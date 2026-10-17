@@ -24,11 +24,14 @@ export interface CarePlan {
   sortOrder: number;
 }
 
-/** 养护记录（对应表 care_record）：某盆植物某类养护在某天的打卡 */
+/** 养护记录（对应表 care_record）：某盆植物某类养护在某天的打卡
+ *  记账键 = 植物 + 类型 + 周期 + 日期（2026-10-17 加周期维度：
+ *  同类型多条计划（如两个不同周期的「施肥」）各自独立记账、互不干扰） */
 export interface CareRecord {
   id: number;
   plantId: number;
   type: string;            // 养护类型名称，与养护计划的 type 对应
+  intervalDays: number;    // 该记录所属计划的周期，记账键的一部分
   planDate: string;        // YYYY-MM-DD
   status: number;          // 1=已完成 2=跳过
   doneAt: number;          // 实际打卡时间戳，未打卡为 0

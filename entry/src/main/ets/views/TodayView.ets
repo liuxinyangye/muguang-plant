@@ -116,7 +116,7 @@ export struct TodayView {
   }
 
   async onTapItem(item: TodayItem): Promise<void> {
-    await CareService.toggle(item.plantId, item.type, todayStr());
+    await CareService.toggle(item.plantId, item.type, item.intervalDays, todayStr());
     DataVersion.bump();
   }
 

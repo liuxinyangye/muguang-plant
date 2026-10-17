@@ -9,7 +9,8 @@
 (function () {
   'use strict';
 
-  var KEY = 'muguang_web_v1';
+  var KEY = 'muguang_web_v2';
+  var OLD_KEY = 'muguang_web_v1';
 
   /* ---------- 日期工具（对应 common/DateUtil.ets） ---------- */
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -60,16 +61,40 @@
   function blank() {
     return { plants: [], plans: [], records: [], prefs: { remind: true }, seq: 0 };
   }
+  function parseRaw(raw) {
+    if (!raw) { return null; }
+    var s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.plants)) { return null; }
+    return s;
+  }
   function load() {
     try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) { return null; }
-      var s = JSON.parse(raw);
-      if (!s || !Array.isArray(s.plants)) { return null; }
-      s.prefs = s.prefs || { remind: true };
-      s.seq = s.seq || 0;
-      return s;
-    } catch (e) { return null; }
+      var s = parseRaw(localStorage.getItem(KEY));
+      if (s) { s.prefs = s.prefs || { remind: true }; s.seq = s.seq || 0; return s; }
+    } catch (e) { /* 落到迁移逻辑 */ }
+    try {
+      var old = parseRaw(localStorage.getItem(OLD_KEY));
+      if (old) { return migrateV1(old); }
+    } catch (e) { /* 忽略，走种子 */ }
+    return null;
+  }
+  /** v1 → v2：记录键从 (植物+类型+日期) 扩为 (植物+类型+周期+日期)。
+   *  旧记录按 plantId+type 找计划：唯一匹配则继承其 intervalDays；
+   *  同类型多条时挂到 sortOrder 最小的计划（旧数据本就共享一条记录，无法拆分）；
+   *  匹配不到计划的记录视为孤儿，直接丢弃（开发期测试数据）。 */
+  function migrateV1(old) {
+    old.prefs = old.prefs || { remind: true };
+    old.seq = old.seq || 0;
+    old.records = (old.records || []).filter(function (r) {
+      var plans = (old.plans || []).filter(function (pl) { return pl.plantId === r.plantId && pl.type === r.type; });
+      if (plans.length === 0) { return false; }
+      plans.sort(function (a, b) { return a.sortOrder - b.sortOrder; });
+      r.intervalDays = plans[0].intervalDays;
+      return true;
+    });
+    save(old);
+    localStorage.removeItem(OLD_KEY);
+    return old;
   }
   function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
   function nextId(s) { s.seq = (s.seq || 0) + 1; return s.seq; }
@@ -98,22 +123,22 @@
       { id: nextId(s), plantId: p3.id, type: '浇水', intervalDays: 14, remindTime: '10:00', sortOrder: 1 }
     );
 
-    function done(plantId, type, dateStr, hhmm) {
-      s.records.push({ id: nextId(s), plantId: plantId, type: type, planDate: dateStr, status: 1, doneAt: ts(dateStr, hhmm) });
+    function done(plantId, type, intervalDays, dateStr, hhmm) {
+      s.records.push({ id: nextId(s), plantId: plantId, type: type, intervalDays: intervalDays, planDate: dateStr, status: 1, doneAt: ts(dateStr, hhmm) });
     }
     // 绿萝浇水：每 2 天，近 30 天全勤；今天早上 09:05 已打卡
-    for (var d = -30; d <= 0; d += 2) { done(p1.id, '浇水', rel(d), d === 0 ? '09:05' : '08:58'); }
+    for (var d = -30; d <= 0; d += 2) { done(p1.id, '浇水', 2, rel(d), d === 0 ? '09:05' : '08:58'); }
     // 施肥 / 修剪：30 天前做过 → 今天正好到期（未打卡，过点提醒）
-    done(p1.id, '施肥', rel(-30), '09:07');
-    done(p1.id, '修剪', rel(-30), '09:10');
+    done(p1.id, '施肥', 30, rel(-30), '09:07');
+    done(p1.id, '修剪', 30, rel(-30), '09:10');
     // 换盆：90 天前做过 → 今天到期（未打卡）
-    done(p1.id, '换盆', rel(-90), '10:20');
+    done(p1.id, '换盆', 90, rel(-90), '10:20');
     // 龟背竹浇水：每 3 天，上次 3 天前 → 今天到期（未打卡）
-    for (var e = -30; e <= -3; e += 3) { done(p2.id, '浇水', rel(e), '08:35'); }
+    for (var e = -30; e <= -3; e += 3) { done(p2.id, '浇水', 3, rel(e), '08:35'); }
     // 小仙人掌浇水：14 天周期，昨天刚做过 → 今天不应做（30 天视图内全勤，不留"从未完成"缺口）
-    done(p3.id, '浇水', rel(-29), '10:02');
-    done(p3.id, '浇水', rel(-15), '10:06');
-    done(p3.id, '浇水', rel(-1), '10:05');
+    done(p3.id, '浇水', 14, rel(-29), '10:02');
+    done(p3.id, '浇水', 14, rel(-15), '10:06');
+    done(p3.id, '浇水', 14, rel(-1), '10:05');
 
     save(s);
     return s;
@@ -126,32 +151,38 @@
   var ST = { WAIT: 0, DONE: 1, SKIPPED: 2 };       // RecordStatus
   var PS = { ACTIVE: 1, ARCHIVED: 0 };              // PlantStatus
   var PRESETS = ['浇水', '施肥', '修剪', '换盆'];    // CareType.PRESETS
-  var MAX_PLANS = 6;
+  var MAX_PLANS = 10; // 2026-10-17 小佳反馈 6 条太少，放宽到 10（与 CareType.MAX_PLANS 保持一致）
 
   function activePlants() {
     return state.plants.filter(function (p) { return p.status === PS.ACTIVE; });
   }
   function plantById(id) {
+    id = +id;
     for (var i = 0; i < state.plants.length; i++) { if (state.plants[i].id === id) { return state.plants[i]; } }
     return null;
   }
   function plansOf(plantId) {
+    plantId = +plantId;
     return state.plans.filter(function (pl) { return pl.plantId === plantId; })
       .sort(function (a, b) { return a.sortOrder - b.sortOrder; });
   }
-  function recordOf(plantId, type, date) {
+  /* 记录记账键 = 植物 + 类型 + 周期 + 日期（2026-10-17 加周期维度：
+     同类型多条计划（如两个不同周期的「施肥」）各自独立记账、互不干扰） */
+  function recordOf(plantId, type, intervalDays, date) {
+    plantId = +plantId; intervalDays = +intervalDays;
     for (var i = 0; i < state.records.length; i++) {
       var r = state.records[i];
-      if (r.plantId === plantId && r.type === type && r.planDate === date) { return r; }
+      if (r.plantId === plantId && r.type === type && r.intervalDays === intervalDays && r.planDate === date) { return r; }
     }
     return null;
   }
   /** 最近一次完成日（严格早于 date），没有返回 '' */
-  function lastDoneDate(plantId, type, date) {
+  function lastDoneDate(plantId, type, intervalDays, date) {
+    plantId = +plantId; intervalDays = +intervalDays;
     var last = '';
     for (var i = 0; i < state.records.length; i++) {
       var r = state.records[i];
-      if (r.plantId === plantId && r.type === type && r.status === ST.DONE && r.planDate < date) {
+      if (r.plantId === plantId && r.type === type && r.intervalDays === intervalDays && r.status === ST.DONE && r.planDate < date) {
         if (r.planDate > last) { last = r.planDate; }
       }
     }
@@ -160,12 +191,12 @@
   /** 到期规则：① 不早于加入日；② 从未完成 或 最近完成日 + 周期 <= 当天 */
   function isDue(plant, plan, date) {
     if (date < toDateStr(new Date(plant.createdAt))) { return false; }
-    var last = lastDoneDate(plant.id, plan.type, date);
+    var last = lastDoneDate(plant.id, plan.type, plan.intervalDays, date);
     if (last === '') { return true; }
     return date >= addDays(last, plan.intervalDays);
   }
-  function statusOf(plantId, type, date) {
-    var r = recordOf(plantId, type, date);
+  function statusOf(plantId, type, intervalDays, date) {
+    var r = recordOf(plantId, type, intervalDays, date);
     return r ? r.status : ST.WAIT;
   }
   /** 某天的全部待办（今日页 / 记录页同源） */
@@ -179,7 +210,7 @@
       for (var j = 0; j < plans.length; j++) {
         var plan = plans[j];
         if (!isDue(p, plan, date)) { continue; }
-        var st = statusOf(p.id, plan.type, date);
+        var st = statusOf(p.id, plan.type, plan.intervalDays, date);
         var passed = false;
         if (date === todayStr()) {
           passed = st === ST.WAIT && isTimePassed(plan.remindTime, now);
@@ -217,14 +248,15 @@
     return result;
   }
   /** 切换打卡：未完成 → 完成；已完成 → 撤销 */
-  function toggle(plantId, type, date) {
-    var r = recordOf(plantId, type, date);
+  function toggle(plantId, type, intervalDays, date) {
+    plantId = +plantId; intervalDays = +intervalDays;
+    var r = recordOf(plantId, type, intervalDays, date);
     if (r && r.status === ST.DONE) {
       state.records.splice(state.records.indexOf(r), 1);
     } else if (r) {
       r.status = ST.DONE; r.doneAt = Date.now();
     } else {
-      state.records.push({ id: nextId(state), plantId: plantId, type: type, planDate: date, status: ST.DONE, doneAt: Date.now() });
+      state.records.push({ id: nextId(state), plantId: plantId, type: type, intervalDays: intervalDays, planDate: date, status: ST.DONE, doneAt: Date.now() });
     }
     save(state);
   }
@@ -295,10 +327,15 @@
   }
 
   /* ---------- 植物增改删（对应 PlantService / PlantEdit） ---------- */
+  /** 同盆养护类型不重复（与 PlantEdit 一致），保留第一条 */
+  /* 有效性过滤：仅剔除空类型行。同盆允许同类型多条，不去重（2026-10-17 修复）。 */
+  function validPlans(plans) {
+    return plans.filter(function (pl) { return pl && pl.type; });
+  }
   function addPlant(form) {
     var p = { id: nextId(state), name: form.name, species: form.species, place: form.place, status: PS.ACTIVE, createdAt: Date.now() };
     state.plants.push(p);
-    form.plans.forEach(function (pl, i) {
+    validPlans(form.plans).forEach(function (pl, i) {
       state.plans.push({ id: nextId(state), plantId: p.id, type: pl.type, intervalDays: pl.intervalDays, remindTime: pl.remindTime, sortOrder: i + 1 });
     });
     save(state);
@@ -308,9 +345,9 @@
     var p = plantById(form.id);
     if (!p) { return; }
     p.name = form.name; p.species = form.species; p.place = form.place;
-    // 计划整组替换（记录按 plantId+type+date 存，改类型名后旧记录不再参与新周期计算）
+    // 计划整组替换（记录按 plantId+type+周期+date 存，改类型名或周期后旧记录不再参与新周期计算）
     state.plans = state.plans.filter(function (pl) { return pl.plantId !== p.id; });
-    form.plans.forEach(function (pl, i) {
+    validPlans(form.plans).forEach(function (pl, i) {
       state.plans.push({ id: nextId(state), plantId: p.id, type: pl.type, intervalDays: pl.intervalDays, remindTime: pl.remindTime, sortOrder: i + 1 });
     });
     save(state);
@@ -320,6 +357,7 @@
     if (p) { p.status = archived ? PS.ARCHIVED : PS.ACTIVE; save(state); }
   }
   function deletePlant(id) {
+    id = +id;
     state.plants = state.plants.filter(function (p) { return p.id !== id; });
     state.plans = state.plans.filter(function (pl) { return pl.plantId !== id; });
     state.records = state.records.filter(function (r) { return r.plantId !== id; });

@@ -45,7 +45,8 @@ Page({
   onToggleTask: function (e) {
     var plantId = e.currentTarget.dataset.plant;
     var type = e.currentTarget.dataset.type;
-    mg.toggle(plantId, type, mg.todayStr());
+    var intervalDays = e.currentTarget.dataset.interval;
+    mg.toggle(plantId, type, intervalDays, mg.todayStr());
     this.refresh();
   },
 
@@ -57,7 +58,7 @@ Page({
 
   onCheckAll: function () {
     mg.planOf(mg.todayStr()).forEach(function (it) {
-      if (it.status !== mg.ST.DONE) { mg.toggle(it.plantId, it.type, mg.todayStr()); }
+      if (it.status !== mg.ST.DONE) { mg.toggle(it.plantId, it.type, it.intervalDays, mg.todayStr()); }
     });
     this.refresh();
     wx.showToast({ title: '已全部打卡', icon: 'success' });

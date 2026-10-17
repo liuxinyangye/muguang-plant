@@ -39,10 +39,11 @@
           wx:for="{{g.items}}"
           wx:for-item="t"
           wx:for-index="idx"
-          wx:key="type"
+          wx:key="*this"
           class="todo {{t.status === 1 ? 'done' : ''}} {{t.passed ? 'overdue' : ''}} {{idx >= 3 && !expanded[g.plantId] ? 'extra' : ''}}"
           data-plant="{{t.plantId}}"
           data-type="{{t.type}}"
+          data-interval="{{t.intervalDays}}"
           bindtap="onToggleTask">
           <view class="meta">
             <view class="time-row">
@@ -61,10 +62,14 @@
       </view>
     </view>
 
-    <!-- 演示工具 -->
+    <!-- 演示工具：一键全打卡 -->
     <view class="demo">
       <view class="demo-btn" bindtap="onCheckAll">一键全打卡</view>
-      <view class="demo-btn" bindtap="onReset">恢复演示数据</view>
     </view>
   </block>
+
+  <!-- 恢复演示数据：始终显示（清空数据后也能一键恢复，与 web 版一致） -->
+  <view class="demo">
+    <view class="demo-btn" bindtap="onReset">恢复演示数据</view>
+  </view>
 </view>

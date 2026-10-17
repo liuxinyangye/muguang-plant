@@ -31,12 +31,13 @@ export class RecordDao {
     }
     try {
       const rs: relationalStore.ResultSet =
-        await store.querySql('SELECT id, plant_id, type, plan_date, status, done_at FROM care_record ORDER BY plan_date ASC');
+        await store.querySql('SELECT id, plant_id, type, interval_days, plan_date, status, done_at FROM care_record ORDER BY plan_date ASC');
       while (rs.goToNextRow()) {
         const item: CareRecord = {
           id: rs.getLong(rs.getColumnIndex('id')),
           plantId: rs.getLong(rs.getColumnIndex('plant_id')),
           type: rs.getString(rs.getColumnIndex('type')),
+          intervalDays: rs.getLong(rs.getColumnIndex('interval_days')),
           planDate: rs.getString(rs.getColumnIndex('plan_date')),
           status: rs.getLong(rs.getColumnIndex('status')),
           doneAt: rs.getLong(rs.getColumnIndex('done_at'))
@@ -52,10 +53,10 @@ export class RecordDao {
     }
   }
 
-  /** 查某一天某类养护的一条记录 */
-  private static find(plantId: number, type: string, date: string): CareRecord | null {
+  /** 查某一天某类养护某周期的一条记录（记账键：植物+类型+周期+日期） */
+  private static find(plantId: number, type: string, intervalDays: number, date: string): CareRecord | null {
     for (const r of RecordDao.list) {
-      if (r.plantId === plantId && r.type === type && r.planDate === date) {
+      if (r.plantId === plantId && r.type === type && r.intervalDays === intervalDays && r.planDate === date) {
         return r;
       }
     }
@@ -64,18 +65,19 @@ export class RecordDao {
 
   /**
    * 打卡 / 跳过：存在则改状态，不存在则新增
-   * 唯一约束保证同一天同一类养护只有一条记录
+   * 唯一约束保证同一天同一类型同一周期只有一条记录（2026-10-17 加周期维度）
    */
-  static async setStatus(plantId: number, type: string, date: string, status: number): Promise<void> {
+  static async setStatus(plantId: number, type: string, intervalDays: number, date: string, status: number): Promise<void> {
     const store = DbHelper.getStore();
     const ts = nowMs();
-    const exist = RecordDao.find(plantId, type, date);
+    const exist = RecordDao.find(plantId, type, intervalDays, date);
 
     if (exist === null) {
       const item: CareRecord = {
         id: 0,
         plantId: plantId,
         type: type,
+        intervalDays: intervalDays,
         planDate: date,
         status: status,
         doneAt: ts
@@ -85,6 +87,7 @@ export class RecordDao {
           const bucket: relationalStore.ValuesBucket = {
             'plant_id': plantId,
             'type': type,
+            'interval_days': intervalDays,
             'plan_date': date,
             'status': status,
             'done_at': ts
@@ -104,8 +107,8 @@ export class RecordDao {
       if (store !== null) {
         try {
           await store.executeSql(
-            'UPDATE care_record SET status = ?, done_at = ? WHERE plant_id = ? AND type = ? AND plan_date = ?',
-            [status, ts, plantId, type, date]);
+            'UPDATE care_record SET status = ?, done_at = ? WHERE plant_id = ? AND type = ? AND interval_days = ? AND plan_date = ?',
+            [status, ts, plantId, type, intervalDays, date]);
         } catch (err) {
           hilog.warn(DOMAIN, TAG, '更新记录失败: %{public}s', JSON.stringify(err));
         }
@@ -114,10 +117,10 @@ export class RecordDao {
   }
 
   /** 撤销打卡：删除该条记录 */
-  static async undo(plantId: number, type: string, date: string): Promise<void> {
+  static async undo(plantId: number, type: string, intervalDays: number, date: string): Promise<void> {
     const kept: CareRecord[] = [];
     for (const r of RecordDao.list) {
-      if (!(r.plantId === plantId && r.type === type && r.planDate === date)) {
+      if (!(r.plantId === plantId && r.type === type && r.intervalDays === intervalDays && r.planDate === date)) {
         kept.push(r);
       }
     }
@@ -127,8 +130,8 @@ export class RecordDao {
     if (store !== null) {
       try {
         await store.executeSql(
-          'DELETE FROM care_record WHERE plant_id = ? AND type = ? AND plan_date = ?',
-          [plantId, type, date]);
+          'DELETE FROM care_record WHERE plant_id = ? AND type = ? AND interval_days = ? AND plan_date = ?',
+          [plantId, type, intervalDays, date]);
       } catch (err) {
         hilog.warn(DOMAIN, TAG, '撤销记录失败: %{public}s', JSON.stringify(err));
       }
@@ -136,22 +139,23 @@ export class RecordDao {
   }
 
   /** 取某条记录的状态，没有记录返回 0（待做） */
-  static statusOf(plantId: number, type: string, date: string): number {
-    const r = RecordDao.find(plantId, type, date);
+  static statusOf(plantId: number, type: string, intervalDays: number, date: string): number {
+    const r = RecordDao.find(plantId, type, intervalDays, date);
     return r === null ? RecordStatus.WAIT : r.status;
   }
 
   /**
-   * 某盆植物某类养护「最近一次完成」的日期
+   * 某盆植物某类养护「最近一次完成」的日期（按周期分开算，2026-10-17 加周期维度：
+   * 长周期计划不再被同类型短周期计划的完成记录不断推迟）
    * 只看 status = 已完成 的记录，且严格早于 beforeDate（当天的完成从次日才开始顺延周期）
    * 返回 '' 表示从未完成过
    * 用于计算周期到期：最近完成日 + 周期 = 下次应做日
    */
-  static lastDoneDate(plantId: number, type: string, beforeDate: string): string {
+  static lastDoneDate(plantId: number, type: string, intervalDays: number, beforeDate: string): string {
     let latest: string = '';
     for (const r of RecordDao.list) {
-      if (r.plantId === plantId && r.type === type && r.status === RecordStatus.DONE
-        && r.planDate < beforeDate) {
+      if (r.plantId === plantId && r.type === type && r.intervalDays === intervalDays
+        && r.status === RecordStatus.DONE && r.planDate < beforeDate) {
         if (r.planDate > latest) {
           latest = r.planDate;
         }

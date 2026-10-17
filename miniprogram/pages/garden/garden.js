@@ -47,8 +47,10 @@ Page({
   },
 
   /* ---------- 编辑弹层 ---------- */
-  openSheet: function (id) {
-    var editingId = id || 0;
+  openSheet: function (e) {
+    // 注意：wxml 的 bindtap 传来的是事件对象，id 要从 dataset 取（且为字符串，需转数字）
+    var ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    var editingId = (ds.id !== undefined && ds.id !== '') ? +ds.id : 0;
     var p = editingId ? mg.plantById(editingId) : null;
     var planRows;
     if (p) {

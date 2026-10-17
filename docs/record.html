@@ -85,7 +85,7 @@
           var plant = MG.plantById(it.plantId) || { name: it.plantName };
           var r = null;
           MG.state().records.forEach(function (x) {
-            if (x.plantId === it.plantId && x.type === it.type && x.planDate === g.date) { r = x; }
+            if (x.plantId === it.plantId && x.type === it.type && x.intervalDays === it.intervalDays && x.planDate === g.date) { r = x; }
           });
           var done = it.status === MG.ST.DONE;
           var skipped = it.status === MG.ST.SKIPPED;

@@ -31,10 +31,10 @@ Page({
           var plant = mg.plantById(it.plantId) || { name: it.plantName };
           var rec = null;
           mg.state().records.forEach(function (x) {
-            if (x.plantId === it.plantId && x.type === it.type && x.planDate === g.date) { rec = x; }
+            if (x.plantId === it.plantId && x.type === it.type && x.intervalDays === it.intervalDays && x.planDate === g.date) { rec = x; }
           });
           return {
-            key: it.plantId + '-' + it.type,
+            key: it.plantId + '-' + it.type + '-' + it.intervalDays,
             plantId: it.plantId,
             name: plant.name,
             emoji: mg.emojiFor(plant),

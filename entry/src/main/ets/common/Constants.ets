@@ -65,6 +65,6 @@ export class PlantStatus {
 export class CareType {
   static readonly PRESETS: string[] = ['浇水', '施肥', '修剪', '换盆']; // 常用预设，一键选择
   static readonly DEFAULT: string = '浇水';   // 新增养护项时的默认类型
-  static readonly MAX_PLANS: number = 6;      // 每盆植物最多几条养护计划
+  static readonly MAX_PLANS: number = 10;     // 每盆植物最多几条养护计划（2026-10-17 小佳反馈 6 条不够用，放宽到 10）
   static readonly MAX_NAME_LEN: number = 8;   // 自定义类型名最长几个字
 }

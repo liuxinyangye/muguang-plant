@@ -25,8 +25,8 @@ export class CareService {
     if (date < createdDate) {
       return false;
     }
-    // ② 按周期判断：最近一次完成（严格早于该天）+ 周期 <= 该天
-    const lastDone: string = RecordDao.lastDoneDate(plant.id, plan.type, date);
+    // ② 按周期判断：最近一次完成（严格早于该天，同类型同周期分开算）+ 周期 <= 该天
+    const lastDone: string = RecordDao.lastDoneDate(plant.id, plan.type, plan.intervalDays, date);
     if (lastDone === '') {
       return true; // 从未完成过，从加入那天起一直应做
     }
@@ -49,7 +49,7 @@ export class CareService {
         if (!CareService.isDue(p, plan, date)) {
           continue;
         }
-        const status: number = RecordDao.statusOf(p.id, plan.type, date);
+        const status: number = RecordDao.statusOf(p.id, plan.type, plan.intervalDays, date);
         let passed: boolean = false;
         if (date === todayStr()) {
           passed = status === RecordStatus.WAIT && isTimePassed(plan.remindTime, now);
@@ -106,21 +106,21 @@ export class CareService {
   }
 
   /**
-   * 切换打卡状态
+   * 切换打卡状态（记账键含周期：同类型多条计划各自独立，2026-10-17）
    * 当前未完成 → 标记为已完成；当前已完成 → 撤销（删除记录）
    */
-  static async toggle(plantId: number, type: string, date: string): Promise<void> {
-    const current: number = RecordDao.statusOf(plantId, type, date);
+  static async toggle(plantId: number, type: string, intervalDays: number, date: string): Promise<void> {
+    const current: number = RecordDao.statusOf(plantId, type, intervalDays, date);
     if (current === RecordStatus.DONE) {
-      await RecordDao.undo(plantId, type, date);
+      await RecordDao.undo(plantId, type, intervalDays, date);
     } else {
-      await RecordDao.setStatus(plantId, type, date, RecordStatus.DONE);
+      await RecordDao.setStatus(plantId, type, intervalDays, date, RecordStatus.DONE);
     }
   }
 
   /** 主动跳过 */
-  static async skip(plantId: number, type: string, date: string): Promise<void> {
-    await RecordDao.setStatus(plantId, type, date, RecordStatus.SKIPPED);
+  static async skip(plantId: number, type: string, intervalDays: number, date: string): Promise<void> {
+    await RecordDao.setStatus(plantId, type, intervalDays, date, RecordStatus.SKIPPED);
   }
 
   /**

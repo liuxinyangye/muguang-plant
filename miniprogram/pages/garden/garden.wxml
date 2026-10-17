@@ -31,7 +31,7 @@
       </view>
     </view>
     <view class="plans" wx:if="{{p.plans.length > 0}}">
-      <view class="plan" wx:for="{{p.plans}}" wx:for-item="pl" wx:key="type">
+      <view class="plan" wx:for="{{p.plans}}" wx:for-item="pl" wx:key="*this">
         <text>{{pl.type}}</text>
         <text class="plan-val">每 {{pl.intervalDays}} 天 · {{pl.remindTime}}</text>
       </view>
@@ -63,7 +63,7 @@
       <view class="plan-block">
         <view class="block-title">养护计划</view>
         <view class="plan-tip">点类型名可选常用类型，也可以自己输入；每盆最多 {{maxPlans}} 条</view>
-        <view class="plan-row" wx:for="{{planRows}}" wx:for-item="row" wx:for-index="idx" wx:key="type">
+        <view class="plan-row" wx:for="{{planRows}}" wx:for-item="row" wx:for-index="idx" wx:key="*this">
           <view class="type-chip" catchtap="openPicker" data-idx="{{idx}}">{{row.type}} ▾</view>
           <text class="seg-label">每</text>
           <input class="p-interval" type="number" value="{{row.intervalDays}}" bindinput="onIntervalInput" data-idx="{{idx}}" />
