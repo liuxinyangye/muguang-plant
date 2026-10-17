@@ -81,6 +81,8 @@ Page({
   },
 
   goGarden: function () {
+    // 一步到位：先置全局信号，花园页 onShow 会自动弹出添加弹层（不用用户再点一次「＋ 添加」）
+    getApp().globalData.pendingAddPlant = true;
     wx.switchTab({ url: '/pages/garden/garden' });
   }
 });

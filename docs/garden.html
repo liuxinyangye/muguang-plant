@@ -286,6 +286,13 @@
     });
 
     render();
+
+    // 从今日页空状态带 ?add=1 跳转过来时，直接弹出添加弹层（一步到位，不用再点「＋ 添加」）。
+    // 弹完后用 replaceState 清掉 query，避免刷新页面重复弹层。
+    if (/[?&]add=1\b/.test(window.location.search)) {
+      openSheet(0);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
   })();
 </script>
 </body>

@@ -24,6 +24,12 @@ Page({
 
   onShow: function () {
     this.refresh();
+    // 从今日页空状态跳来时（pendingAddPlant），自动弹出添加弹层，消费后立即清除信号
+    var app = getApp();
+    if (app.globalData.pendingAddPlant) {
+      app.globalData.pendingAddPlant = false;
+      this.openSheetById(0);
+    }
   },
 
   noop: function () {},
@@ -51,6 +57,10 @@ Page({
     // 注意：wxml 的 bindtap 传来的是事件对象，id 要从 dataset 取（且为字符串，需转数字）
     var ds = (e && e.currentTarget && e.currentTarget.dataset) || {};
     var editingId = (ds.id !== undefined && ds.id !== '') ? +ds.id : 0;
+    this.openSheetById(editingId);
+  },
+
+  openSheetById: function (editingId) {
     var p = editingId ? mg.plantById(editingId) : null;
     var planRows;
     if (p) {
