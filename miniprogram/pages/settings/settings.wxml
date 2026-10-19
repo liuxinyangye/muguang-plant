@@ -31,7 +31,7 @@
 
   <view class="group">
     <view class="g-title">关于</view>
-    <view class="row"><view class="label">版本</view><text class="val">1.0.0（实训版）</text></view>
+    <view class="row"><view class="label">版本</view><text class="val">1.1.0（实训版）</text></view>
     <view class="row"><view class="label">关于沐光</view><text class="val">植物养护助手 · 小程序端</text></view>
     <view class="row"><view class="label">同源工程</view><text class="val">HarmonyOS App · 数据模型一致</text></view>
   </view>

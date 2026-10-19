@@ -5,7 +5,7 @@
 import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
-import { common } from '@kit.AbilityKit';
+import { bundleManager, common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { Colors, Sizes, PrefKeys } from '../common/Constants';
 import { PlantDao } from '../model/PlantDao';
@@ -25,12 +25,36 @@ struct Settings {
   @State lastCare: string = '暂无记录';
   @State plantCount: number = 0;
   @State activeCount: number = 0;
+  @State appVersion: string = '1.1.0';
 
   aboutToAppear(): void {
+    this.loadVersion();
     this.loadPref();
-    this.lastCare = CareService.lastCareText();
+    this.refreshStats();
+  }
+
+  /** 读取应用版本号：从包信息实时取，避免硬编码与 AppScope/app.json5 不一致 */
+  private loadVersion(): void {
+    try {
+      const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
+      if (info.versionName && info.versionName.length > 0) {
+        this.appVersion = info.versionName;
+      }
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, '读取版本号失败，使用默认值: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /** 页面每次显示时刷新统计：从首页等其他页面返回时数据保持新鲜 */
+  onPageShow(): void {
+    this.refreshStats();
+  }
+
+  /** 刷新数据统计：从数据层实时读取，保证界面显示与数据永远一致 */
+  private refreshStats(): void {
     this.plantCount = PlantService.allCount();
     this.activeCount = PlantService.activeCount();
+    this.lastCare = CareService.lastCareText();
   }
 
   /** 读取提醒开关（失败则保持默认值） */
@@ -73,9 +97,8 @@ struct Settings {
     if (result.index === 1) {
       await PlantDao.removeAll();
       await RecordDao.removeAll();
-      this.plantCount = 0;
-      this.activeCount = 0;
-      this.lastCare = '暂无记录';
+      // 从数据层重新读取统计（removeAll 后即为 0），避免界面与数据不一致
+      this.refreshStats();
       DataVersion.bump();
       promptAction.showToast({ message: '已清空全部数据', duration: 2000 });
     }
@@ -130,10 +153,20 @@ struct Settings {
         .margin({ top: 14 })
         .onClick(async () => {
           const ctx = getContext(this) as common.UIAbilityContext;
-          const ok: boolean = await Notifier.sendTest(ctx);
-          if (!ok) {
+          const r: string = await Notifier.sendTest(ctx);
+          if (r === 'sent') {
             promptAction.showToast({
-              message: '当前环境暂不支持系统通知，真机可见效果',
+              message: '已发送，下拉状态栏在通知中心查看',
+              duration: 2500
+            });
+          } else if (r === 'no_auth') {
+            promptAction.showToast({
+              message: '通知权限未开启，请在系统对话框点允许',
+              duration: 2500
+            });
+          } else {
+            promptAction.showToast({
+              message: '发送失败，请重试',
               duration: 2000
             });
           }
@@ -202,7 +235,7 @@ struct Settings {
         .margin({ bottom: 12 })
 
       this.infoRow('应用名称', '沐光')
-      this.infoRow('版本', '1.0.0')
+      this.infoRow('版本', this.appVersion)
       this.infoRow('开发平台', 'HarmonyOS')
 
       Text('一款帮您按时浇水施肥、记录每盆植物成长的本地应用。')

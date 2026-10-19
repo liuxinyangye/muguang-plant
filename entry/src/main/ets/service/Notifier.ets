@@ -108,12 +108,14 @@ export class Notifier {
     }
   }
 
-  /** 设置页「发送测试通知」用：先确保授权，再直接发一条（不受总开关限制） */
-  static async sendTest(ctx: common.UIAbilityContext): Promise<boolean> {
-    const ok: boolean = await Notifier.ensureAuthorized(ctx);
-    if (!ok) {
-      return false;
+  /** 设置页「发送测试通知」用：先确保授权，再直接发一条（不受总开关限制）
+   *  返回 'sent' 已发送 / 'no_auth' 未授权 / 'failed' 发送失败，供调用方给出明确反馈 */
+  static async sendTest(ctx: common.UIAbilityContext): Promise<string> {
+    const authorized: boolean = await Notifier.ensureAuthorized(ctx);
+    if (!authorized) {
+      return 'no_auth';
     }
-    return await Notifier.publish(ctx, '沐光 · 测试通知', '通知功能正常，到点我会提醒你照顾植物');
+    const published: boolean = await Notifier.publish(ctx, '沐光 · 测试通知', '通知功能正常，到点我会提醒你照顾植物');
+    return published ? 'sent' : 'failed';
   }
 }
